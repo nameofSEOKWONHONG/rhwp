@@ -301,8 +301,10 @@ mod tests {
 
             let text_chars: Vec<char> = para.text.chars().collect();
 
-            eprintln!("\n=== 문단 {} (줄 {}개, 가용폭={:.1}px, 들여쓰기={:.1}px) ===",
-                pi, para.line_segs.len(), available_width, indent);
+            let english_break_unit = para_style.map(|s| s.english_break_unit).unwrap_or(0);
+            let korean_break_unit = para_style.map(|s| s.korean_break_unit).unwrap_or(0);
+            eprintln!("\n=== 문단 {} (줄 {}개, 가용폭={:.1}px, 들여쓰기={:.1}px, ko_break={}, en_break={}) ===",
+                pi, para.line_segs.len(), available_width, indent, korean_break_unit, english_break_unit);
 
             // 원본 LINE_SEG의 줄바꿈 위치 기준으로 각 줄 텍스트 폭 측정
             for (li, ls) in para.line_segs.iter().enumerate() {

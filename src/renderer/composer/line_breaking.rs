@@ -432,6 +432,19 @@ fn fill_lines(
             BreakToken::Text { start_idx, end_idx, width, max_font_size } => {
                 if *max_font_size > line_max_fs { line_max_fs = *max_font_size; }
 
+                // 단일 문자 CJK/한글 토큰은 줄바꿈 가능 지점으로 처리
+                // CJK 문자(한자/일본어)와 한글 글자 단위 토큰은 문자 경계에서 줄바꿈 가능
+                // (어절 모드 한글은 여러 글자가 하나의 토큰이므로 여기에 해당 안 됨)
+                if *end_idx - *start_idx == 1 && *start_idx > line_start_idx {
+                    let c = text_chars[*start_idx];
+                    if is_cjk_char(c) {
+                        last_break_token_idx = Some(ti);
+                        last_break_char_idx = *start_idx;
+                        width_at_last_break = line_width;
+                        fs_at_last_break = line_max_fs;
+                    }
+                }
+
                 if line_width + *width > effective_width(is_first_line) {
                     if *start_idx > line_start_idx {
                         // 줄 시작 이후에 위치한 토큰 → 줄 바꿈 필요
