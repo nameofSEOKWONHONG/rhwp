@@ -640,7 +640,9 @@ fn measure_char_width_embedded(font_family: &str, bold: bool, italic: bool, c: c
         actual_px += (em + 10.0) / 20.0 * font_size / em;
     }
 
-    let hwp = (actual_px * 75.0).round() as i32;
+    // 한컴과 동일한 HWPUNIT 정수 변환: w * base_size / em (내림)
+    // round가 아닌 truncate (as i32)로 처리하여 한컴 정수 나눗셈과 일치
+    let hwp = (actual_px * 75.0) as i32;
     Some(hwp as f64 / 75.0)
 }
 

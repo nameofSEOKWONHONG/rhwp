@@ -273,6 +273,98 @@ mod tests {
         }
     }
 
+    /// 원본 vs reflow 줄바꿈 경계에서 마지막 글자의 누적 폭 비교
+    /// 줄바꿈 차이가 발생하는 정확한 글자와 폭을 추적
+    #[test]
+    fn test_lineseg_boundary_char_analysis() {
+        use crate::renderer::layout::{estimate_text_width, resolved_to_text_style};
+        use crate::renderer::style_resolver::detect_lang_category;
+        use crate::renderer::composer::find_active_char_shape;
+
+        let paths = ["samples/lseg-03-spacing.hwp", "samples/lseg-01-basic.hwp"];
+        for path in &paths {
+            let Some((document, styles)) = load_raw(path) else { continue };
+            let dpi = 96.0;
+            let section = &document.sections[0];
+            let page_def = &section.section_def.page_def;
+            let column_def = find_column_def_for_paragraph(&section.paragraphs, 0);
+            let layout = PageLayoutInfo::from_page_def(page_def, &column_def, dpi);
+            let col_area = &layout.column_areas[0];
+
+            eprintln!("\n========== {} ==========", path);
+
+            for (pi, para) in section.paragraphs.iter().enumerate() {
+                if pi > 0 { break; } // 첫 문단만
+                if para.line_segs.is_empty() || para.text.is_empty() { continue; }
+                if para.line_segs[0].line_height == 0 { continue; }
+
+                let para_style = styles.para_styles.get(para.para_shape_id as usize);
+                let margin_left = para_style.map(|s| s.margin_left).unwrap_or(0.0);
+                let margin_right = para_style.map(|s| s.margin_right).unwrap_or(0.0);
+                let available_width = col_area.width - margin_left - margin_right;
+                let available_hwp = crate::renderer::px_to_hwpunit(available_width, dpi);
+
+                let text_chars: Vec<char> = para.text.chars().collect();
+
+                // reflow 결과
+                let mut para_clone = para.clone();
+                crate::renderer::composer::reflow_line_segs(&mut para_clone, available_width, &styles, dpi);
+
+                eprintln!("문단 {} (가용폭={}HU={:.1}px)", pi, available_hwp, available_width);
+
+                // 각 줄의 경계 글자 비교
+                for li in 0..para.line_segs.len().max(para_clone.line_segs.len()) {
+                    let orig_ts = para.line_segs.get(li).map(|l| l.text_start);
+                    let refl_ts = para_clone.line_segs.get(li).map(|l| l.text_start);
+
+                    // 원본 줄의 마지막 글자 위치에서의 누적 폭
+                    if let (Some(ots), Some(next_ots)) = (orig_ts, para.line_segs.get(li + 1).map(|l| l.text_start)) {
+                        // 이 줄의 글자 범위 (char index)
+                        let char_start = para.char_offsets.iter()
+                            .position(|&o| o >= ots).unwrap_or(0);
+                        let char_end = para.char_offsets.iter()
+                            .position(|&o| o >= next_ots).unwrap_or(text_chars.len());
+
+                        // 줄 텍스트의 각 글자 폭을 누적
+                        let mut cum = 0.0f64;
+                        let mut last_char = ' ';
+                        for ci in char_start..char_end.min(text_chars.len()) {
+                            let ch = text_chars[ci];
+                            let utf16_pos = if ci < para.char_offsets.len() { para.char_offsets[ci] } else { ci as u32 };
+                            let style_id = find_active_char_shape(&para.char_shapes, utf16_pos);
+                            let lang = detect_lang_category(ch);
+                            let ts = resolved_to_text_style(&styles, style_id, lang);
+                            let cw = estimate_text_width(&ch.to_string(), &ts);
+                            cum += cw;
+                            last_char = ch;
+                        }
+                        let cum_hwp = crate::renderer::px_to_hwpunit(cum, dpi);
+
+                        // 다음 글자(줄 넘침 원인)
+                        let next_char = text_chars.get(char_end).copied().unwrap_or('?');
+                        let next_utf16 = if char_end < para.char_offsets.len() { para.char_offsets[char_end] } else { 0 };
+                        let next_style_id = find_active_char_shape(&para.char_shapes, next_utf16);
+                        let next_lang = detect_lang_category(next_char);
+                        let next_ts = resolved_to_text_style(&styles, next_style_id, next_lang);
+                        let next_cw = estimate_text_width(&next_char.to_string(), &next_ts);
+                        let next_cum_hwp = crate::renderer::px_to_hwpunit(cum + next_cw, dpi);
+
+                        let delta_ts = refl_ts.map(|r| r as i64 - next_ots as i64).unwrap_or(0);
+
+                        eprintln!(
+                            "  L{}: 원본ts={} reflow_ts={} | 줄폭={}HU(남은={}HU) | 끝='{}' 다음='{}'({:.1}px) → +다음={}HU {} | delta_next_ts={}",
+                            li, ots, refl_ts.unwrap_or(0),
+                            cum_hwp, available_hwp - cum_hwp,
+                            last_char, next_char, next_cw, next_cum_hwp,
+                            if next_cum_hwp > available_hwp { "초과" } else { "여유" },
+                            delta_ts
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     /// 원본 줄바꿈 위치에서의 텍스트 폭 vs available_width 비교
     /// 한컴이 줄을 나누는 정확한 지점에서 rhwp가 측정한 폭을 확인
     #[test]
