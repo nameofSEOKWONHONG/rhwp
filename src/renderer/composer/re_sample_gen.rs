@@ -15,15 +15,26 @@ mod tests {
         output_path: &str,
         texts: &[&str],
     ) -> Result<(), String> {
-        generate_sample_with_font(template_path, output_path, texts, None)
+        generate_sample_with_options(template_path, output_path, texts, None, None)
     }
 
-    /// 템플릿 HWP 로드 → 텍스트 + 폰트 교체 → 저장
+    /// 폰트만 변경
     fn generate_sample_with_font(
         template_path: &str,
         output_path: &str,
-        texts: &[&str],  // 문단별 텍스트
-        font_name: Option<&str>,  // None이면 템플릿 폰트 유지
+        texts: &[&str],
+        font_name: Option<&str>,
+    ) -> Result<(), String> {
+        generate_sample_with_options(template_path, output_path, texts, font_name, None)
+    }
+
+    /// 템플릿 HWP 로드 → 텍스트 + 폰트 + 정렬 교체 → 저장
+    fn generate_sample_with_options(
+        template_path: &str,
+        output_path: &str,
+        texts: &[&str],
+        font_name: Option<&str>,
+        alignment: Option<crate::model::style::Alignment>,
     ) -> Result<(), String> {
         let p = Path::new(template_path);
         if !p.exists() {
@@ -99,6 +110,16 @@ mod tests {
 
             // controls 초기화 (조판부호 제거)
             para.controls.clear();
+
+            // 정렬 변경
+            if let Some(align) = alignment {
+                let ps_id = para.para_shape_id as usize;
+                if ps_id < doc.doc_info.para_shapes.len() {
+                    doc.doc_info.para_shapes[ps_id].alignment = align;
+                    doc.doc_info.para_shapes[ps_id].raw_data = None;
+                    doc.doc_info.raw_stream = None;
+                }
+            }
         }
         section.raw_stream = None;
 
@@ -256,6 +277,37 @@ mod tests {
             );
             match result {
                 Ok(()) => eprintln!("생성: {} (폰트: {})", output, font_name),
+                Err(e) => eprintln!("실패: {} — {}", output, e),
+            }
+        }
+    }
+
+    // ─── 정렬별 샘플 ───
+
+    #[test]
+    fn test_gen_re_alignment_variations() {
+        use crate::model::style::Alignment;
+
+        let aligns = [
+            ("justify", Alignment::Justify),
+            ("left", Alignment::Left),
+            ("center", Alignment::Center),
+            ("right", Alignment::Right),
+        ];
+
+        let text = hangul_repeat("가나다라마바사아자차카타파하", 100);
+
+        for (suffix, alignment) in &aligns {
+            let output = format!("samples/re-align-{}.hwp", suffix);
+            let result = generate_sample_with_options(
+                "samples/lseg-01-basic.hwp",
+                &output,
+                &[&text],
+                None,
+                Some(*alignment),
+            );
+            match result {
+                Ok(()) => eprintln!("생성: {} (정렬: {:?})", output, alignment),
                 Err(e) => eprintln!("실패: {} — {}", output, e),
             }
         }
