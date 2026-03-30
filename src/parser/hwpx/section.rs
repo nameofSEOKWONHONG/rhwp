@@ -1770,6 +1770,9 @@ fn parse_ctrl(
                     b"autoNum" => {
                         let ctrl = parse_ctrl_autonum(ce, reader)?;
                         controls.push(ctrl);
+                        // AutoNumber: 공백 placeholder 추가 (HWP 바이너리와 동일)
+                        // → apply_auto_numbers_to_composed에서 "  "(연속 2공백)으로 번호 삽입
+                        text_parts.push(" ".to_string());
                     }
                     b"hiddenComment" => {
                         let ctrl = parse_ctrl_hidden_comment(reader)?;
@@ -1838,6 +1841,7 @@ fn parse_ctrl(
                     b"autoNum" => {
                         let an = parse_autonum_attrs(ce);
                         controls.push(Control::AutoNumber(an));
+                        text_parts.push(" ".to_string());
                     }
                     b"fieldBegin" => {
                         let f = parse_field_begin_attrs(ce);

@@ -2281,6 +2281,7 @@ impl LayoutEngine {
                 };
 
                 // 각 줄의 텍스트에서 연속된 두 공백("  ")을 찾아 번호로 대체
+                // HWP/HWPX 모두 AutoNumber 위치에 공백 placeholder 삽입
                 for line in &mut composed.lines {
                     for run in &mut line.runs {
                         if let Some(pos) = run.text.find("  ") {
