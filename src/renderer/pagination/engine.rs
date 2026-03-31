@@ -145,15 +145,36 @@ impl Paginator {
                 self.process_page_break(&mut st);
             }
 
-            // tac 표: trailing line_spacing 제외한 콘텐츠 높이로 판단
+            // tac 표: 표 실측 높이 + 텍스트 줄 높이(th)로 판단 (Task #19)
             let para_height_for_fit = if has_table {
                 let has_tac = para.controls.iter().any(|c|
                     matches!(c, Control::Table(t) if t.common.treat_as_char));
                 if has_tac {
-                    let trailing_ls = para.line_segs.last()
-                        .map(|seg| crate::renderer::hwpunit_to_px(seg.line_spacing, self.dpi))
-                        .unwrap_or(0.0);
-                    (para_height - trailing_ls).max(0.0)
+                    // 표 실측 높이 합산
+                    let tac_h: f64 = para.controls.iter().enumerate()
+                        .filter_map(|(ci, c)| {
+                            if let Control::Table(t) = c {
+                                if t.common.treat_as_char {
+                                    let mt_h = measured.get_table_height(para_idx, ci).unwrap_or(0.0);
+                                    let outer = crate::renderer::hwpunit_to_px(
+                                        (t.outer_margin_top + t.outer_margin_bottom) as i32, self.dpi);
+                                    Some(mt_h + outer)
+                                } else { None }
+                            } else { None }
+                        })
+                        .sum();
+                    // 텍스트 줄 높이: th 기반 (lh에 표 높이가 포함되므로 th 사용)
+                    let text_h: f64 = para.line_segs.iter()
+                        .filter(|seg| seg.text_height > 0 && seg.text_height < seg.line_height / 3)
+                        .map(|seg| {
+                            crate::renderer::hwpunit_to_px(seg.text_height + seg.line_spacing, self.dpi)
+                        })
+                        .sum();
+                    // host spacing (sb + sa)
+                    let mp = measured.get_measured_paragraph(para_idx);
+                    let sb = mp.map(|m| m.spacing_before).unwrap_or(0.0);
+                    let sa = mp.map(|m| m.spacing_after).unwrap_or(0.0);
+                    tac_h + text_h + sb + sa
                 } else {
                     para_height
                 }
