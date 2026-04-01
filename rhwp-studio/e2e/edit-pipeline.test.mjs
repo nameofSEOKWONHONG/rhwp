@@ -702,32 +702,72 @@ async function run() {
     // ── 17. 글상자 내 텍스트 편집 ──
     console.log('\n[17] 글상자 내 텍스트 편집...');
     await createNewDocument(page);
+    await clickEditArea(page);
 
     const textboxResult = await page.evaluate(() => {
       const w = window.__wasm;
       if (!w?.doc) return { error: 'no doc' };
       try {
+        // 제목
         w.doc.insertText(0, 0, 0, 'TC #17: textbox edit');
         w.doc.splitParagraph(0, 0, 20);
 
-        // 글상자는 Shape(Rectangle + drawText)로 생성
-        // createTextBox API가 있는지 확인
-        if (typeof w.doc.createTextBox === 'function') {
-          w.doc.createTextBox(0, 1, 0, 14400, 7200);  // 2인치 x 1인치
-          window.__eventBus?.emit('document-changed');
-          return { ok: true, method: 'createTextBox' };
-        } else {
-          // 글상자 API 없으면 SKIP
-          return { error: 'createTextBox not available' };
+        // 글상자 앞 텍스트 문단
+        w.doc.insertText(0, 1, 0, 'Before textbox paragraph');
+        w.doc.splitParagraph(0, 1, 24);
+
+        // 글상자 뒤 텍스트 문단 (글상자 삽입 전 미리 생성)
+        w.doc.insertText(0, 2, 0, 'After textbox paragraph');
+
+        // createShapeControl에 shapeType="textbox"로 글상자 생성
+        const tbResult = JSON.parse(w.doc.createShapeControl(JSON.stringify({
+          sectionIdx: 0, paraIdx: 2, charOffset: 0,
+          width: 21600, height: 7200,  // 3인치 x 1인치
+          shapeType: 'textbox',
+          textWrap: 'TopAndBottom',
+        })));
+        const tbPara = tbResult.paraIdx;
+        const tbCtrl = tbResult.controlIdx ?? 0;
+
+        // 글상자 내 텍스트 편집
+        w.doc.insertTextInCell(0, tbPara, tbCtrl, 0, 0, 0, 'Hello TextBox');
+        const cellText = w.doc.getTextInCell(0, tbPara, tbCtrl, 0, 0, 0, 50);
+
+        window.__eventBus?.emit('document-changed');
+        const pageCount = w.doc.pageCount();
+        const paraCount = w.doc.getParagraphCount(0);
+
+        // 앞뒤 문단 텍스트 확인
+        let beforeText = '', afterText = '';
+        for (let p = 0; p < paraCount; p++) {
+          const t = w.doc.getTextRange(0, p, 0, 50);
+          if (t.includes('Before textbox')) beforeText = t;
+          if (t.includes('After textbox')) afterText = t;
         }
+
+        const svg = w.doc.renderPageSvg(0);
+        const hasHello = svg.includes('>H<');
+        const hasBefore = svg.includes('>B<');
+        const hasAfter = svg.includes('>A<');
+
+        return { cellText, pageCount, beforeText, afterText,
+                 hasHello, hasBefore, hasAfter, tbPara, tbCtrl, ok: true };
       } catch (e) { return { error: e.message }; }
     });
-    await page.evaluate(() => new Promise(r => setTimeout(r, 300)));
+    await page.evaluate(() => new Promise(r => setTimeout(r, 500)));
 
     if (textboxResult.error) {
       console.log(`  SKIP: ${textboxResult.error}`);
     } else {
-      check(textboxResult.ok, `글상자 편집: ${textboxResult.method}`);
+      check(textboxResult.ok, `글상자 생성 성공 (para=${textboxResult.tbPara}, ctrl=${textboxResult.tbCtrl})`);
+      check(textboxResult.cellText === 'Hello TextBox',
+        `글상자 내 텍스트: "${textboxResult.cellText}"`);
+      check(textboxResult.beforeText?.includes('Before textbox'),
+        `글상자 앞 문단: "${textboxResult.beforeText}"`);
+      check(textboxResult.afterText?.includes('After textbox'),
+        `글상자 뒤 문단: "${textboxResult.afterText}"`);
+      check(textboxResult.hasHello && textboxResult.hasBefore && textboxResult.hasAfter,
+        `SVG 렌더링 (앞=${textboxResult.hasBefore} 글상자=${textboxResult.hasHello} 뒤=${textboxResult.hasAfter})`);
     }
     await screenshot(page, 'edit-17-textbox');
 
