@@ -74,9 +74,6 @@ impl Paginator {
         let mut hidden_empty_paras: std::collections::HashSet<usize> = std::collections::HashSet::new();
 
         for (para_idx, para) in paragraphs.iter().enumerate() {
-            if std::env::var("PAG_DEBUG").is_ok() {
-                eprintln!("PAG_PARA: pi={} cur_h={:.1} page={}", para_idx, st.current_height, st.pages.len());
-            }
             // 표 컨트롤 여부 사전 감지
             let has_table = measured.paragraph_has_table(para_idx);
 
@@ -220,10 +217,6 @@ impl Paginator {
                 && has_table
                 && tac_table_count_for_flush <= 1
             {
-                if std::env::var("PAG_DEBUG").is_ok() {
-                    eprintln!("PAG_FLUSH: pi={} cur_h={:.1} para_h_fit={:.1} avail={:.1}",
-                        para_idx, st.current_height, para_height_for_fit, available_height);
-                }
                 st.advance_column_or_new_page();
             }
 
@@ -1052,11 +1045,6 @@ impl Paginator {
         // 페이지 하단/중앙 고정 표: 본문 높이에 영향 없음
         // 표가 현재 페이지에 전체 들어가는지 확인
         // 텍스트 문단과 동일한 0.5px 부동소수점 톨러런스 적용
-        if std::env::var("PAG_DEBUG").is_ok() {
-            eprintln!("PAG_TABLE: pi={} ci={} cur_h={:.1} tbl_total={:.1} avail={:.1} fits={}",
-                para_idx, ctrl_idx, st.current_height, table_total_height, table_available_height,
-                st.current_height + table_total_height <= table_available_height + 0.5);
-        }
         if st.current_height + table_total_height <= table_available_height + 0.5 {
             self.place_table_fits(st, para_idx, ctrl_idx, para, measured, table,
                 table_total_height, para_height, para_height_for_fit, is_tac_table);
