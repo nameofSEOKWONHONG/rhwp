@@ -1,14 +1,34 @@
-# rhwp
+<p align="center">
+  <img src="assets/logo/logo-256.png" alt="rhwp logo" width="128" />
+</p>
 
-**"모두의 한글"** — hwp/hwpx를 읽고 보고 쓸 수 있는 오픈소스 한글 편집기
+<h1 align="center">rhwp</h1>
 
-지금까지 hwp/hwpx는 특정 회사의 전유물이었습니다.
-rhwp는 공개된 hwp/hwpx 스펙문서를 기반으로, AI에 적합한 방식으로 재구성하고 모두가 참여할 수 있는 워크스페이스를 목표로 합니다.
+<p align="center">
+  <strong>알(R), 모두의 한글</strong> — 알에서 시작하다<br/>
+  <em>All HWP, Open for Everyone</em>
+</p>
 
-[![CI](https://github.com/edwardkim/rhwp/actions/workflows/ci.yml/badge.svg)](https://github.com/edwardkim/rhwp/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
-[![WASM](https://img.shields.io/badge/WebAssembly-Ready-blue.svg)](https://webassembly.org/)
+<p align="center">
+  <a href="https://github.com/edwardkim/rhwp/actions/workflows/ci.yml"><img src="https://github.com/edwardkim/rhwp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://edwardkim.github.io/rhwp/"><img src="https://img.shields.io/badge/Demo-GitHub%20Pages-blue" alt="Demo" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=edwardkim.rhwp-vscode"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC" alt="VS Code" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.75%2B-orange.svg" alt="Rust" /></a>
+  <a href="https://webassembly.org/"><img src="https://img.shields.io/badge/WebAssembly-Ready-blue.svg" alt="WASM" /></a>
+</p>
+
+---
+
+HWP 파일을 **어디서든** 열어보세요. 무료, 설치 없이.
+
+rhwp는 Rust + WebAssembly 기반의 오픈소스 HWP/HWPX 뷰어/에디터입니다. 닫힌 포맷의 벽을 깨고, 모든 사람, 모든 AI, 모든 플랫폼에서 한글 문서를 자유롭게 읽고 쓸 수 있게 합니다.
+
+> **[온라인 데모](https://edwardkim.github.io/rhwp/)** | **[VS Code 확장](https://marketplace.visualstudio.com/items?itemName=edwardkim.rhwp-vscode)** | **[Open VSX](https://open-vsx.org/extension/edwardkim/rhwp-vscode)**
+
+<p align="center">
+  <img src="assets/screenshots/render-example-1.png" alt="rhwp rendering example" width="600" />
+</p>
 
 ## 로드맵
 
