@@ -200,7 +200,11 @@ function setupFileInput(): void {
     await loadFile(file);
   });
 
-  // 드래그 앤 드롭 지원
+  // 문서 전체에서 브라우저 기본 드롭 동작 방지 (파일 열기/다운로드 방지)
+  document.addEventListener('dragover', (e) => e.preventDefault());
+  document.addEventListener('drop', (e) => e.preventDefault());
+
+  // 드래그 앤 드롭 지원 (scroll-container 영역)
   const container = document.getElementById('scroll-container')!;
   container.addEventListener('dragover', (e) => {
     e.preventDefault();
